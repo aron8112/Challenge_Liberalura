@@ -3,11 +3,14 @@ package com.challenge.literalura.service;
 import com.challenge.literalura.dto.AutorDTO;
 import com.challenge.literalura.model.Autor;
 import com.challenge.literalura.model.DatosAutor;
+import com.challenge.literalura.model.Libro;
 import com.challenge.literalura.repository.AutorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -44,10 +47,30 @@ public class AutorService {
     return convierteDatos(autorRepository.findAuthorsAliveInYear(anioBuscado));
   }
 
+  public List<AutorDTO> buscarAutoresPorNombreOrdenados(String nombre) {
+    return convierteDatos(autorRepository.buscarAutoresPorNombreOrdenadosPorAnioNacimientoDesc(nombre));
+  }
+
   public List<AutorDTO> convierteDatos(List<Autor> autor){
     return autor.stream()
         .map(s-> new AutorDTO(s.getAnioNacimiento(),s.getAnioMuerte(),s.getNombre()))
         .collect(Collectors.toList());
   }
 
+  public Map<AutorDTO, List<String>> buscarAutoresTitulos(String nombre){
+    Autor autor = autorRepository.findByNombreWithBooks(nombre);
+    if (autor == null) {
+      return null;
+    }
+    System.out.println(autor);
+    AutorDTO autorDto = new AutorDTO(autor.getAnioNacimiento(), autor.getAnioMuerte(), autor.getNombre());
+    Map<AutorDTO, List<String>> autoresConTitulos = new HashMap<>();
+
+      List<String> titulos = autor.getLibros().stream()
+          .map(l-> String.valueOf(l.getTitle())+"\n")
+          .collect(Collectors.toList());
+      autoresConTitulos.put(autorDto, titulos);
+
+    return autoresConTitulos;
+  }
 }

@@ -8,6 +8,8 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DatosResAPI(
     @JsonAlias("count") int contador,
-    @JsonAlias("results") ArrayList<DatosLibro> results
+    @JsonAlias("results") ArrayList<DatosLibro> results,
+    @JsonAlias("next") String nextResult,
+    @JsonAlias("previous") String previousResult
 ) {
 }

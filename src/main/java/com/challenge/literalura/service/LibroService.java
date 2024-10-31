@@ -8,9 +8,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,12 +38,7 @@ public class LibroService {
 
     // 2. Convertir los datos de la API en entidades Libro
     if(!listaRespuestaLibros.isEmpty()){
-    List<Libro> libros = listaRespuestaLibros.stream()
-        .map(this::convertirADominioLibro)
-        .collect(Collectors.toList());
-
-    // 3. Guardar cada libro en la base de datos
-    libros.forEach(repository::save);
+    var libros = guardarLibros(listaRespuestaLibros);
     libros.forEach(System.out::println);
     } else {
       System.out.println("Sin resultados, por favor pruebe con otra opción.");
@@ -109,5 +102,60 @@ public class LibroService {
       conteoPorIdioma.put(idioma, count);
     }
     return conteoPorIdioma;
+  }
+
+  public List<AutorDTO> buscarAutoresConsultadosPorAnio(String nombre){
+    List<AutorDTO> autores = autorService.buscarAutoresPorNombreOrdenados(nombre);
+    return autores;
+  }
+
+  public Map<AutorDTO, List<String>> mostrarAutoresConTitle(String nombre) {
+    return autorService.buscarAutoresTitulos(nombre);
+  }
+
+  public DatosResAPI busquedaWebPorIdioma(String langBusqueda) {
+  var json = consultaAPI.obtenerDatos(langBusqueda);
+    DatosResAPI apiResponse = conversorJson.obtenerDatos(json, DatosResAPI.class);
+//    System.out.println(apiResponse);
+    return apiResponse;
+  }
+
+  public List<Libro> guardarLibros(List<DatosLibro> datosLibros){
+    List<Libro> libros = datosLibros.stream()
+        .map(this::convertirADominioLibro)
+        .collect(Collectors.toList());
+
+    libros.forEach(repository::save);
+    return libros;
+  }
+
+  public List<Map<String, Object>> busquedaTop10Api(String sortSearch) {
+    var json = consultaAPI.obtenerDatos(sortSearch);
+    DatosResAPI apiResponse = conversorJson.obtenerDatos(json, DatosResAPI.class);
+
+    var libros = apiResponse.results().stream()
+        .sorted(Comparator.comparingInt(DatosLibro::descargasNum).reversed())
+        .limit(10)
+        .map(libro -> Map.of(
+            "title", (Object) libro.title(),
+            "descargasNum", (Object) libro.descargasNum(),
+            "author", (Object) (libro.authors().isEmpty() ? "Desconocido" : libro.authors().get(0).nombre()),
+            "apiId", (Object) libro.apiId()
+        ))
+        .collect(Collectors.toList());;
+
+    return libros;
+  }
+
+  public List<Libro> top10LibrosBd() {
+    return repository.findTop10ByOrderByDescargasNumDesc();
+  }
+
+  @Transactional
+  public DoubleSummaryStatistics mostrarEstadisticasLibros() {
+
+    List<Libro> todosLosLibros = repository.findAll();
+    return todosLosLibros.stream()
+        .collect(Collectors.summarizingDouble(Libro::getDescargasNum));
   }
 }

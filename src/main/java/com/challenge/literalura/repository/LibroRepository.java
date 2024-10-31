@@ -15,4 +15,5 @@ public interface LibroRepository extends JpaRepository<Libro, Long> {
   @Query("SELECT l.lang, COUNT(l) FROM Libro l GROUP BY l.lang")
   List<Object[]> countBooksByLanguage();
 
+  List<Libro> findTop10ByOrderByDescargasNumDesc();
 }
